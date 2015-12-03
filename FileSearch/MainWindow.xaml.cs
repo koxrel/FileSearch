@@ -25,10 +25,18 @@ namespace FileSearch
             InitializeComponent();
         }
 
-        private void buttonSearch_Click(object sender, RoutedEventArgs e)
+        private async void buttonSearch_Click(object sender, RoutedEventArgs e)
         {
             var engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
-            listBoxSearchResults.ItemsSource = engine.GetFiles();
+            SearchEngine.FoundFile += UpdateListBox;
+            progressBarSearch.IsIndeterminate = true;
+            listBoxSearchResults.ItemsSource = await engine.GetFiles();
+            progressBarSearch.IsIndeterminate = false;
+        }
+
+        private void UpdateListBox()
+        {
+            Dispatcher.Invoke(() => listBoxSearchResults.Items.Refresh());
         }
     }
 }
