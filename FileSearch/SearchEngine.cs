@@ -12,8 +12,9 @@ namespace FileSearch
         string _initialDirectory;
         string _pattern;
         List<string> _searchResults;
-        public List<string> SearchResults { get; private set; }     
+        //public List<string> SearchResults { get; private set; }     
         public static event Action FoundFile;
+        public static event Action EndOfSearch; 
 
         public SearchEngine(string initialDirectory, string pattern)
         {
@@ -42,6 +43,7 @@ namespace FileSearch
                                 _searchResults.Add(file);
                                 if (FoundFile != null)
                                     FoundFile();
+                                Task.Delay(500).Wait();
                             }
                         }
                     }
@@ -68,9 +70,13 @@ namespace FileSearch
         public List<string> GetFiles()
         {
             _searchResults = new List<string>();
-            Task.Run(() => Find(_initialDirectory));
+            Task.Run(() => Find(_initialDirectory))
+                .ContinueWith(t =>
+                {
+                    if (EndOfSearch != null)
+                        EndOfSearch();
+                });
             return _searchResults;
-            
         }
     }
 }

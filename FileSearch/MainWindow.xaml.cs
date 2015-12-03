@@ -23,20 +23,28 @@ namespace FileSearch
         public MainWindow()
         {
             InitializeComponent();
+            
+            SearchEngine.FoundFile += UpdateListBox;
+            SearchEngine.EndOfSearch += EndOfSearch;
         }
 
         private async void buttonSearch_Click(object sender, RoutedEventArgs e)
         {
             var engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
-            SearchEngine.FoundFile += UpdateListBox;
+
             progressBarSearch.IsIndeterminate = true;
-            listBoxSearchResults.ItemsSource = await engine.GetFiles();
-            progressBarSearch.IsIndeterminate = false;
+
+            listBoxSearchResults.ItemsSource = engine.GetFiles();
         }
 
         private void UpdateListBox()
         {
             Dispatcher.Invoke(() => listBoxSearchResults.Items.Refresh());
+        }
+
+        private void EndOfSearch()
+        {
+            Dispatcher.Invoke(() => progressBarSearch.IsIndeterminate = false);
         }
     }
 }
