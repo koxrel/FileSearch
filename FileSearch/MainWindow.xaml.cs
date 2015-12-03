@@ -20,6 +20,8 @@ namespace FileSearch
     /// </summary>
     public partial class MainWindow : Window
     {
+        SearchEngine engine;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -28,13 +30,21 @@ namespace FileSearch
             SearchEngine.EndOfSearch += EndOfSearch;
         }
 
-        private async void buttonSearch_Click(object sender, RoutedEventArgs e)
+        private void buttonSearch_Click(object sender, RoutedEventArgs e)
         {
-            var engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
+            Button b = sender as Button;
+            if (b != null && b.Content.ToString() == "Cancel")
+            {
+                engine.Cancel();
+                return;
+            }
+
+            engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
 
             progressBarSearch.IsIndeterminate = true;
 
             listBoxSearchResults.ItemsSource = engine.GetFiles();
+            buttonSearch.Content = "Cancel";
         }
 
         private void UpdateListBox()
@@ -45,6 +55,18 @@ namespace FileSearch
         private void EndOfSearch()
         {
             Dispatcher.Invoke(() => progressBarSearch.IsIndeterminate = false);
+            Dispatcher.Invoke(() => buttonSearch.Content = "Search");
+        }
+
+        private void listBoxSearchResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (listBoxSearchResults.SelectedItem == null) return;
+
+            string path = listBoxSearchResults.SelectedItem as string;
+            if (path == null) return;
+
+            NotepadProcess np = new NotepadProcess(path);
+            np.StartProcess();
         }
     }
 }
