@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileSearch
@@ -12,7 +13,10 @@ namespace FileSearch
         string _initialDirectory;
         string _pattern;
         List<string> _searchResults;
-        //public List<string> SearchResults { get; private set; }     
+
+        private CancellationToken token;
+        private CancellationTokenSource ct;
+
         public static event Action FoundFile;
         public static event Action EndOfSearch; 
 
@@ -29,6 +33,7 @@ namespace FileSearch
                 string[] files = Directory.GetFiles(currentDirectory);
                 foreach (var file in files)
                 {
+                    token.ThrowIfCancellationRequested();
                     StreamReader sr = null;
                     try
                     {
@@ -70,13 +75,21 @@ namespace FileSearch
         public List<string> GetFiles()
         {
             _searchResults = new List<string>();
-            Task.Run(() => Find(_initialDirectory))
+            
+            ct = new CancellationTokenSource();
+            token = ct.Token;
+            Task.Run(() => Find(_initialDirectory), token)
                 .ContinueWith(t =>
                 {
                     if (EndOfSearch != null)
                         EndOfSearch();
                 });
             return _searchResults;
+        }
+
+        public void Cancel()
+        {
+            ct.Cancel();
         }
     }
 }
