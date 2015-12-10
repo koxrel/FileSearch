@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,12 +9,13 @@ namespace FileSearch
     {
         string _initialDirectory;
         string _pattern;
-        List<string> _searchResults;
+        private int _processedFiles;
+        
+        private CancellationTokenSource _ct;
 
-        private CancellationToken token;
-        private CancellationTokenSource ct;
+        private int _numberOfFiles;
 
-        public static event Action FoundFile;
+        public static event Action<string, double> FoundFile;
         public static event Action EndOfSearch; 
 
         public SearchEngine(string initialDirectory, string pattern)
@@ -26,7 +24,7 @@ namespace FileSearch
             _pattern = pattern;
         }
 
-        public void Find(string currentDirectory)
+        private void Find(string currentDirectory, CancellationToken token)
         {
             try
             {
@@ -34,6 +32,7 @@ namespace FileSearch
                 foreach (var file in files)
                 {
                     token.ThrowIfCancellationRequested();
+                    _processedFiles += 1;
                     StreamReader sr = null;
                     try
                     {
@@ -45,10 +44,9 @@ namespace FileSearch
                             if (line.Contains(_pattern))
                             {
                                 found = true;
-                                _searchResults.Add(file);
                                 if (FoundFile != null)
-                                    FoundFile();
-                                Task.Delay(500).Wait();
+                                    FoundFile(file, (double)_processedFiles / _numberOfFiles * 100);
+                                //Task.Delay(500).Wait();
                             }
                         }
                     }
@@ -64,7 +62,7 @@ namespace FileSearch
                 }
                 // Now look through all directories inside the current (recursive call)
                 foreach (var directory in Directory.GetDirectories(currentDirectory))
-                    Find(directory);
+                    Find(directory, token);
             }
             catch(Exception e)
             {
@@ -72,24 +70,47 @@ namespace FileSearch
             }
         }
 
-        public List<string> GetFiles()
+        public void GetFiles()
         {
-            _searchResults = new List<string>();
-            
-            ct = new CancellationTokenSource();
-            token = ct.Token;
-            Task.Run(() => Find(_initialDirectory), token)
+            _ct = new CancellationTokenSource();
+            var token = _ct.Token;
+
+            //GetNumberOfFiles(_initialDirectory);
+            //Task.Run(() => Find(_initialDirectory, token), token)
+            //    .ContinueWith(t =>
+            //    {
+            //        if (EndOfSearch != null)
+            //            EndOfSearch();
+            //    });
+
+            Task.Run(() => GetNumberOfFiles(_initialDirectory, token), token) 
+                .ContinueWith(t => Find(_initialDirectory, token), token)
                 .ContinueWith(t =>
                 {
                     if (EndOfSearch != null)
                         EndOfSearch();
                 });
-            return _searchResults;
         }
 
         public void Cancel()
         {
-            ct.Cancel();
+            _ct.Cancel();
+        }
+
+        private void GetNumberOfFiles(string currentDirectory, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                foreach (var file in Directory.GetFiles(currentDirectory))
+                    _numberOfFiles += 1;
+                foreach (var directory in Directory.GetDirectories(currentDirectory))
+                    GetNumberOfFiles(directory, token);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
         }
     }
 }

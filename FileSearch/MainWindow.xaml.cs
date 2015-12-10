@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FileSearch
 {
@@ -20,7 +9,7 @@ namespace FileSearch
     /// </summary>
     public partial class MainWindow : Window
     {
-        SearchEngine engine;
+        SearchEngine _engine;
 
         public MainWindow()
         {
@@ -35,33 +24,36 @@ namespace FileSearch
             Button b = sender as Button;
             if (b != null && b.Content.ToString() == "Cancel")
             {
-                engine.Cancel();
+                _engine.Cancel();
                 return;
             }
 
-            engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
+            _engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
+
+            listBoxSearchResults.Items.Clear();
 
             progressBarSearch.IsIndeterminate = true;
 
-            listBoxSearchResults.ItemsSource = engine.GetFiles();
+            _engine.GetFiles();
+
             buttonSearch.Content = "Cancel";
         }
 
-        private void UpdateListBox()
+        private void UpdateListBox(string newItem, double progress)
         {
-            Dispatcher.Invoke(() => listBoxSearchResults.Items.Refresh());
+            Dispatcher.Invoke(() => listBoxSearchResults.Items.Add(newItem));
+            Dispatcher.Invoke(() => progressBarSearch.IsIndeterminate = false);
+            Dispatcher.Invoke(() => progressBarSearch.Value = progress);
         }
 
         private void EndOfSearch()
         {
-            Dispatcher.Invoke(() => progressBarSearch.IsIndeterminate = false);
+            Dispatcher.Invoke(() => progressBarSearch.Value = 100);
             Dispatcher.Invoke(() => buttonSearch.Content = "Search");
         }
 
         private void listBoxSearchResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (listBoxSearchResults.SelectedItem == null) return;
-
             string path = listBoxSearchResults.SelectedItem as string;
             if (path == null) return;
 

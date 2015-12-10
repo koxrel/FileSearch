@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace FileSearch
 {
     class NotepadProcess
     {
-        private string _fileName;
+        private readonly string _fileName;
 
         public NotepadProcess(string fileName)
         {
