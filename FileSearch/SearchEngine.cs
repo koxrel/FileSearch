@@ -1,38 +1,40 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileSearch
 {
-    class SearchEngine
+    internal class SearchEngine
     {
-        string _initialDirectory;
-        string _pattern;
-        private int _processedFiles;
+        private readonly string _initialDirectory;
+        private readonly string _pattern;
         
         private CancellationTokenSource _ct;
-
+        
+        private int _processedFiles;
         private int _numberOfFiles;
-
-        public static event Action<string, double> FoundFile;
-        public static event Action EndOfSearch; 
-
+        
+        public static event Action<string> FoundFile;
+        public static event Action<double> ReportProgress;
+        
         public SearchEngine(string initialDirectory, string pattern)
         {
             _initialDirectory = initialDirectory;
             _pattern = pattern;
         }
-
+        
         private void Find(string currentDirectory, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             try
             {
                 string[] files = Directory.GetFiles(currentDirectory);
                 foreach (var file in files)
                 {
                     token.ThrowIfCancellationRequested();
-                    _processedFiles += 1;
+                    Interlocked.Increment(ref _processedFiles);
                     StreamReader sr = null;
                     try
                     {
@@ -45,8 +47,7 @@ namespace FileSearch
                             {
                                 found = true;
                                 if (FoundFile != null)
-                                    FoundFile(file, (double)_processedFiles / _numberOfFiles * 100);
-                                //Task.Delay(500).Wait();
+                                    FoundFile(file);
                             }
                         }
                     }
@@ -59,6 +60,8 @@ namespace FileSearch
                         if (sr != null)
                             sr.Close();
                     }
+                    if (ReportProgress != null && _numberOfFiles != 0)
+                        ReportProgress((double)_processedFiles / _numberOfFiles * 100);
                 }
                 // Now look through all directories inside the current (recursive call)
                 foreach (var directory in Directory.GetDirectories(currentDirectory))
@@ -69,47 +72,34 @@ namespace FileSearch
                 Console.WriteLine("Error directory {0}: {1}", currentDirectory, e.Message);
             }
         }
-
-        public void GetFiles()
+        
+        public async Task GetFiles()
         {
             _ct = new CancellationTokenSource();
-            var token = _ct.Token;
+            
+            Task.Run(() => GetNumberOfFiles(_initialDirectory, _ct.Token), _ct.Token);
 
-            //GetNumberOfFiles(_initialDirectory);
-            //Task.Run(() => Find(_initialDirectory, token), token)
-            //    .ContinueWith(t =>
-            //    {
-            //        if (EndOfSearch != null)
-            //            EndOfSearch();
-            //    });
-
-            Task.Run(() => GetNumberOfFiles(_initialDirectory, token), token) 
-                .ContinueWith(t => Find(_initialDirectory, token), token)
-                .ContinueWith(t =>
-                {
-                    if (EndOfSearch != null)
-                        EndOfSearch();
-                });
+            await Task.Run(() => Find(_initialDirectory, _ct.Token), _ct.Token);
         }
-
+        
         public void Cancel()
         {
             _ct.Cancel();
         }
-
+        
         private void GetNumberOfFiles(string currentDirectory, CancellationToken token)
         {
-            token.ThrowIfCancellationRequested();
             try
             {
-                foreach (var file in Directory.GetFiles(currentDirectory))
-                    _numberOfFiles += 1;
-                foreach (var directory in Directory.GetDirectories(currentDirectory))
-                    GetNumberOfFiles(directory, token);
+                token.ThrowIfCancellationRequested();
+
+                Interlocked.Add(ref _numberOfFiles, Directory.GetFiles(currentDirectory).Length);
+
+                Parallel.ForEach(Directory.GetDirectories(currentDirectory), dir => GetNumberOfFiles(dir, token));
             }
             catch (Exception)
             {
-                // ignored
+
             }
         }
     }

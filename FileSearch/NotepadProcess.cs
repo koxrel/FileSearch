@@ -2,7 +2,7 @@
 
 namespace FileSearch
 {
-    class NotepadProcess
+    internal class NotepadProcess
     {
         private readonly string _fileName;
 

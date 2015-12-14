@@ -1,6 +1,8 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace FileSearch
 {
@@ -16,15 +18,15 @@ namespace FileSearch
             InitializeComponent();
             
             SearchEngine.FoundFile += UpdateListBox;
-            SearchEngine.EndOfSearch += EndOfSearch;
+            SearchEngine.ReportProgress += UpdateProgress;
         }
 
-        private void buttonSearch_Click(object sender, RoutedEventArgs e)
+        private async void buttonSearch_Click(object sender, RoutedEventArgs e)
         {
-            Button b = sender as Button;
-            if (b != null && b.Content.ToString() == "Cancel")
+            if (buttonSearch.Content.ToString() == "Cancel")
             {
                 _engine.Cancel();
+                buttonSearch.IsEnabled = false;
                 return;
             }
 
@@ -33,23 +35,23 @@ namespace FileSearch
             listBoxSearchResults.Items.Clear();
 
             progressBarSearch.IsIndeterminate = true;
-
-            _engine.GetFiles();
-
             buttonSearch.Content = "Cancel";
+            await _engine.GetFiles();
+
+            buttonSearch.Content = "Search";
+            buttonSearch.IsEnabled = true;
+            progressBarSearch.IsIndeterminate = false;
         }
 
-        private void UpdateListBox(string newItem, double progress)
+        private void UpdateListBox(string newItem)
         {
             Dispatcher.Invoke(() => listBoxSearchResults.Items.Add(newItem));
             Dispatcher.Invoke(() => progressBarSearch.IsIndeterminate = false);
-            Dispatcher.Invoke(() => progressBarSearch.Value = progress);
         }
 
-        private void EndOfSearch()
+        private void UpdateProgress(double progress)
         {
-            Dispatcher.Invoke(() => progressBarSearch.Value = 100);
-            Dispatcher.Invoke(() => buttonSearch.Content = "Search");
+            Dispatcher.Invoke(() => progressBarSearch.Value = progress);
         }
 
         private void listBoxSearchResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
