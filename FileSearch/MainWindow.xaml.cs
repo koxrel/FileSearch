@@ -11,12 +11,15 @@ namespace FileSearch
     /// </summary>
     public partial class MainWindow : Window
     {
-        SearchEngine _engine;
+        private SearchEngine _engine;
 
         public MainWindow()
         {
             InitializeComponent();
-            
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
             SearchEngine.FoundFile += UpdateListBox;
             SearchEngine.ReportProgress += UpdateProgress;
         }
