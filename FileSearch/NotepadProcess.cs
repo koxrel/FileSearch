@@ -13,9 +13,16 @@ namespace FileSearch
 
         public void StartProcess()
         {
-            Process p = new Process {StartInfo = {FileName = "notepad.exe"}};
+            Process p = new Process
+            {
+                StartInfo =
+                {
+                    FileName = "notepad.exe",
+                    Arguments = _fileName
+                }
 
-            p.StartInfo.Arguments = _fileName;
+            };
+
             p.Start();
         }
     }

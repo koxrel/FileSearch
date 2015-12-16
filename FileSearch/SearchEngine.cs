@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,9 +26,9 @@ namespace FileSearch
         
         private void Find(string currentDirectory, CancellationToken token)
         {
-            token.ThrowIfCancellationRequested();
             try
             {
+                token.ThrowIfCancellationRequested();
                 string[] files = Directory.GetFiles(currentDirectory);
                 foreach (var file in files)
                 {
@@ -73,13 +72,13 @@ namespace FileSearch
             }
         }
         
-        public async Task GetFiles()
+        public Task GetFiles()
         {
             _ct = new CancellationTokenSource();
             
             Task.Run(() => GetNumberOfFiles(_initialDirectory, _ct.Token), _ct.Token);
 
-            await Task.Run(() => Find(_initialDirectory, _ct.Token), _ct.Token);
+            return Task.Run(() => Find(_initialDirectory, _ct.Token), _ct.Token);
         }
         
         public void Cancel()
