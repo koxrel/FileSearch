@@ -33,7 +33,7 @@ namespace FileSearch
                 foreach (var file in files)
                 {
                     token.ThrowIfCancellationRequested();
-                    Interlocked.Increment(ref _processedFiles);
+                    _processedFiles++;
                     StreamReader sr = null;
                     try
                     {

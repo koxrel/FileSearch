@@ -2,11 +2,12 @@
 
 namespace FileSearch
 {
-    internal class NotepadProcess
+    internal class FileViewerProcess
     {
         private readonly string _fileName;
+        private const string App = "notepad.exe";
 
-        public NotepadProcess(string fileName)
+        public FileViewerProcess(string fileName)
         {
             _fileName = fileName;
         }
@@ -17,10 +18,9 @@ namespace FileSearch
             {
                 StartInfo =
                 {
-                    FileName = "notepad.exe",
+                    FileName = App,
                     Arguments = _fileName
                 }
-
             };
 
             p.Start();
