@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FileSearch
 {
@@ -20,15 +9,48 @@ namespace FileSearch
     /// </summary>
     public partial class MainWindow : Window
     {
+        private SearchEngine _engine;
+
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        private void buttonSearch_Click(object sender, RoutedEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
-            listBoxSearchResults.ItemsSource = engine.GetFiles();
+            SearchEngine.FoundFile += newFile => Dispatcher.Invoke(() => listBoxSearchResults.Items.Add(newFile));
+            SearchEngine.ReportProgress += progress => Dispatcher.Invoke(() => progressBarSearch.Value = progress);
+        }
+
+        private async void buttonSearch_Click(object sender, RoutedEventArgs e)
+        {
+            if (buttonSearch.Content.ToString() == "Cancel")
+            {
+                _engine.Cancel();
+                buttonSearch.IsEnabled = false;
+                progressBarSearch.Foreground = Brushes.Gold;
+                return;
+            }
+
+            _engine = new SearchEngine(textBoxPath.Text, textBoxPattern.Text);
+
+            listBoxSearchResults.Items.Clear();
+            buttonSearch.Content = "Cancel";
+            progressBarSearch.Foreground = new SolidColorBrush(Color.FromRgb(6, 176, 37));
+
+            await _engine.GetFiles();
+
+            buttonSearch.Content = "Search";
+            buttonSearch.IsEnabled = true;
+        }
+
+        private void listBoxSearchResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            string path = listBoxSearchResults.SelectedItem as string;
+            if (path == null) return;
+
+            var fwp = new FileViewerProcess(path);
+            fwp.StartProcess();
         }
     }
 }
